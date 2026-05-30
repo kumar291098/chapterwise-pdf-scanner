@@ -20,9 +20,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -244,12 +250,42 @@ fun PdfPageItem(file: File, pageIndex: Int, modifier: Modifier = Modifier) {
         }
     }
 
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(0.707f) // A4 Aspect ratio helper
             .background(Color.White)
-            .padding(12.dp),
+            .clipToBounds() // Keep zoomed contents inside bounds
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    scale = (scale * zoom).coerceIn(1f, 5f)
+                    if (scale > 1f) {
+                        // Allow panning only when zoomed in
+                        offset = Offset(
+                            x = offset.x + pan.x,
+                            y = offset.y + pan.y
+                        )
+                    } else {
+                        offset = Offset.Zero
+                    }
+                }
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        if (scale > 1f) {
+                            scale = 1f
+                            offset = Offset.Zero
+                        } else {
+                            scale = 3f
+                            offset = Offset.Zero
+                        }
+                    }
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
         bitmap?.let {
@@ -257,7 +293,14 @@ fun PdfPageItem(file: File, pageIndex: Int, modifier: Modifier = Modifier) {
                 bitmap = it.asImageBitmap(),
                 contentDescription = "Page ${pageIndex + 1}",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offset.x,
+                        translationY = offset.y
+                    )
             )
         } ?: if (error != null) {
             Text(error!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
