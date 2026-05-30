@@ -1,0 +1,6 @@
+{
+  "name": "ChapterWise PDF",
+  "description": "Store PDF scans and compose documents with structured chapters, generate PDFs locally on your phone, and easily search and sort your documents by name.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
