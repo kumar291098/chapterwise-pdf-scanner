@@ -22,6 +22,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateCentroidSize
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -260,18 +267,21 @@ fun PdfPageItem(file: File, pageIndex: Int, modifier: Modifier = Modifier) {
             .background(Color.White)
             .clipToBounds() // Keep zoomed contents inside bounds
             .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    scale = (scale * zoom).coerceIn(1f, 5f)
-                    if (scale > 1f) {
-                        // Allow panning only when zoomed in
-                        offset = Offset(
-                            x = offset.x + pan.x,
-                            y = offset.y + pan.y
-                        )
-                    } else {
-                        offset = Offset.Zero
-                    }
-                }
+                detectPdfZoomGestures(
+                    onGesture = { pan, zoom ->
+                        scale = (scale * zoom).coerceIn(1f, 5f)
+                        if (scale > 1f) {
+                            // Allow panning only when zoomed in
+                            offset = Offset(
+                                x = offset.x + pan.x,
+                                y = offset.y + pan.y
+                            )
+                        } else {
+                            offset = Offset.Zero
+                        }
+                    },
+                    scaleProvider = { scale }
+                )
             }
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -313,3 +323,58 @@ fun PdfPageItem(file: File, pageIndex: Int, modifier: Modifier = Modifier) {
         }
     }
 }
+
+suspend fun PointerInputScope.detectPdfZoomGestures(
+    onGesture: (pan: Offset, zoom: Float) -> Unit,
+    scaleProvider: () -> Float
+) {
+    awaitEachGesture {
+        var zoom = 1f
+        var pan = Offset.Zero
+        var pastTouchSlop = false
+        val touchSlop = viewConfiguration.touchSlop
+        
+        awaitFirstDown(requireUnconsumed = false)
+        
+        do {
+            val event = awaitPointerEvent()
+            val canceled = event.changes.any { it.isConsumed }
+            val currentScale = scaleProvider()
+            val pointerCount = event.changes.size
+            
+            if (!canceled) {
+                val zoomChange = event.calculateZoom()
+                val panChange = event.calculatePan()
+                
+                if (!pastTouchSlop) {
+                    zoom *= zoomChange
+                    pan += panChange
+                    
+                    val centroidSize = event.calculateCentroidSize(useCurrent = false)
+                    val zoomMotion = kotlin.math.abs(1f - zoom) * centroidSize
+                    val panMotion = pan.getDistance()
+                    
+                    if (zoomMotion > touchSlop || panMotion > touchSlop) {
+                        pastTouchSlop = true
+                    }
+                }
+                
+                if (pastTouchSlop) {
+                    if (zoomChange != 1f || panChange != Offset.Zero) {
+                        onGesture(panChange, zoomChange)
+                    }
+                    
+                    // Consume pointer input to lock parent scroll when zoomed in OR when pinching with multiple fingers
+                    if (currentScale > 1f || pointerCount > 1) {
+                        event.changes.forEach {
+                            if (it.positionChanged()) {
+                                it.consume()
+                            }
+                        }
+                    }
+                }
+            }
+        } while (!canceled && event.changes.any { it.pressed })
+    }
+}
+
