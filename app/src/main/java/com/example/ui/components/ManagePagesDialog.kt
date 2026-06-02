@@ -27,11 +27,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.Chapter
 import com.example.ui.BookViewModel
-import com.example.ui.theme.CreamBackground
-import com.example.ui.theme.DarkCharcoal
-import com.example.ui.theme.DesertSand
-import com.example.ui.theme.OliveGreen
-import com.example.ui.theme.SoftSage
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +44,7 @@ fun ManagePagesDialog(
             Text(
                 text = "Adjust Chapter Pages",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = DarkCharcoal
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -62,7 +57,7 @@ fun ManagePagesDialog(
                 Text(
                     text = "Rotate pages clockwise or rearrange their order to assemble the final PDF exactly how you want it.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = SoftSage
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (chapter.scannedImagePaths.isEmpty()) {
@@ -72,7 +67,7 @@ fun ManagePagesDialog(
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No pages to manage.", style = MaterialTheme.typography.bodyMedium, color = SoftSage)
+                        Text("No pages to manage.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     LazyVerticalGrid(
@@ -86,8 +81,8 @@ fun ManagePagesDialog(
                         itemsIndexed(chapter.scannedImagePaths) { index, imgPath ->
                             Card(
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, DesertSand),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(0.6f)
@@ -152,7 +147,7 @@ fun ManagePagesDialog(
                                                 imageVector = Icons.Default.ArrowBack,
                                                 contentDescription = "Move Left",
                                                 modifier = Modifier.size(14.dp),
-                                                tint = if (index > 0) OliveGreen else Color.Gray.copy(alpha = 0.4f)
+                                                tint = if (index > 0) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.4f)
                                             )
                                         }
 
@@ -167,7 +162,7 @@ fun ManagePagesDialog(
                                                 imageVector = Icons.Default.RotateRight,
                                                 contentDescription = "Rotate 90°",
                                                 modifier = Modifier.size(14.dp),
-                                                tint = OliveGreen
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                         }
 
@@ -189,7 +184,7 @@ fun ManagePagesDialog(
                                                 imageVector = Icons.Default.ArrowForward,
                                                 contentDescription = "Move Right",
                                                 modifier = Modifier.size(14.dp),
-                                                tint = if (index < chapter.scannedImagePaths.size - 1) OliveGreen else Color.Gray.copy(alpha = 0.4f)
+                                                tint = if (index < chapter.scannedImagePaths.size - 1) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.4f)
                                             )
                                         }
 
@@ -222,13 +217,13 @@ fun ManagePagesDialog(
         confirmButton = {
             Button(
                 onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(containerColor = OliveGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(24.dp)
             ) {
                 Text("Done", fontWeight = FontWeight.Bold)
             }
         },
-        containerColor = CreamBackground,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(28.dp)
     )
 }

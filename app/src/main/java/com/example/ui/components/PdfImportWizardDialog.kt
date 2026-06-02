@@ -27,13 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.CreamBackground
-import com.example.ui.theme.DarkCharcoal
-import com.example.ui.theme.DesertSand
-import com.example.ui.theme.LightHerbalBg
-import com.example.ui.theme.OliveGreen
-import com.example.ui.theme.SoftSage
-import com.example.ui.theme.WarmDesertSand
 import com.example.utils.GeminiService
 import com.example.utils.PdfExtractor
 import kotlinx.coroutines.launch
@@ -67,13 +60,13 @@ fun PdfImportWizardDialog(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = OliveGreen,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
                     text = "AI PDF Study Extractor",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DarkCharcoal
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         },
@@ -86,7 +79,7 @@ fun PdfImportWizardDialog(
             ) {
                 // PDF details card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = WarmDesertSand.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -106,14 +99,14 @@ fun PdfImportWizardDialog(
                             Text(
                                 text = meta.name,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = DarkCharcoal,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "${meta.pageCount} page(s) detected",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = SoftSage
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -127,14 +120,14 @@ fun PdfImportWizardDialog(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        CircularProgressIndicator(color = OliveGreen)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Text(
                             text = statusText,
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Medium,
                                 fontStyle = FontStyle.Italic
                             ),
-                            color = OliveGreen,
+                            color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -146,17 +139,17 @@ fun PdfImportWizardDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
+                             Text(
                                 text = "Select Pages to Catalog (${selectedPages.size} selected)",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = SoftSage
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(
                                     text = "All",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = OliveGreen,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.clickable {
                                         selectedPages = (0 until meta.pageCount).toSet()
                                     }
@@ -165,7 +158,7 @@ fun PdfImportWizardDialog(
                                     text = "None",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = SoftSage,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.clickable {
                                         selectedPages = emptySet()
                                     }
@@ -188,7 +181,7 @@ fun PdfImportWizardDialog(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .background(if (isSelected) OliveGreen else WarmDesertSand.copy(alpha = 0.4f))
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                                         .clickable {
                                             selectedPages = if (isSelected) {
                                                 selectedPages - i
@@ -202,14 +195,14 @@ fun PdfImportWizardDialog(
                                         text = (i + 1).toString(),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) Color.White else DarkCharcoal
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
                         }
                     }
 
-                    HorizontalDivider(color = DesertSand.copy(alpha = 0.5f))
+                    HorizontalDivider()
 
                     // AI note options
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -220,19 +213,19 @@ fun PdfImportWizardDialog(
                             Checkbox(
                                 checked = generateAiNotes,
                                 onCheckedChange = { generateAiNotes = it },
-                                colors = CheckboxDefaults.colors(checkedColor = OliveGreen),
+                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.testTag("ai_notes_checkbox")
                             )
                             Column {
                                 Text(
                                     text = "🪄 Generate AI Study Notes",
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = DarkCharcoal
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Gemini analyzes selected pages to extract revision bullet points.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = SoftSage
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -246,10 +239,17 @@ fun PdfImportWizardDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .testTag("prompt_instructions_input"),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = OliveGreen,
-                                    focusedLabelColor = OliveGreen
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    cursorColor = MaterialTheme.colorScheme.primary
                                 )
                             )
                         }
@@ -263,18 +263,18 @@ fun PdfImportWizardDialog(
                         Checkbox(
                             checked = saveAsImages,
                             onCheckedChange = { saveAsImages = it },
-                            colors = CheckboxDefaults.colors(checkedColor = OliveGreen)
+                            colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary)
                         )
                         Column {
                             Text(
                                 text = "🖼️ Save pages as visual chapter scans",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = DarkCharcoal
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Appends page graphics into chapter snapshots to export again in final book PDF.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = SoftSage
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -332,8 +332,8 @@ fun PdfImportWizardDialog(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = OliveGreen,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.testTag("pdf_wizard_confirm_button")
@@ -352,11 +352,11 @@ fun PdfImportWizardDialog(
                         onDismiss()
                     }
                 ) {
-                    Text("Cancel", color = SoftSage)
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             }
         },
-        containerColor = CreamBackground,
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(28.dp)
     )
 }

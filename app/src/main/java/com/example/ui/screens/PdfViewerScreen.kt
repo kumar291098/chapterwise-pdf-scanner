@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -13,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,13 +40,17 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import com.example.ui.components.BookPageFlip
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -58,6 +65,19 @@ fun PdfViewerScreen(
     val file = remember(filePath) { File(filePath) }
     var pageCount by remember { mutableStateOf(0) }
     var isError by remember { mutableStateOf(false) }
+
+    var isBookMode by remember { mutableStateOf(true) }
+    var currentPage by remember { mutableStateOf(0) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Remember the preloader across compositions of this screen
+    val preloader = remember(file) { PdfPagePreloader(file, context, coroutineScope) }
+
+    DisposableEffect(preloader) {
+        onDispose {
+            preloader.clear()
+        }
+    }
 
     LaunchedEffect(file) {
         withContext(Dispatchers.IO) {
@@ -113,6 +133,15 @@ fun PdfViewerScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { isBookMode = !isBookMode },
+                        modifier = Modifier.testTag("pdf_toggle_view_mode_button")
+                    ) {
+                        Icon(
+                            imageVector = if (isBookMode) Icons.Default.List else Icons.Default.MenuBook,
+                            contentDescription = if (isBookMode) "Switch to List View" else "Switch to 3D Book View"
+                        )
+                    }
                     IconButton(
                         onClick = {
                             if (file.exists()) {
@@ -172,40 +201,100 @@ fun PdfViewerScreen(
                 CircularProgressIndicator()
             }
         } else {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(paddingValues)
             ) {
-                items(pageCount) { index ->
-                    Card(
-                        shape = RoundedCornerShape(8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                if (isBookMode) {
+                    val configuration = LocalConfiguration.current
+                    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+                    LaunchedEffect(currentPage, isLandscape) {
+                        preloader.updateVisibleWindow(currentPage, isLandscape)
+                    }
+
+                    Box(
                         modifier = Modifier
+                            .weight(1f)
                             .fillMaxWidth()
-                            .widthIn(max = 600.dp)
                     ) {
-                        Column {
-                            PdfPageItem(file = file, pageIndex = index)
-                            HorizontalDivider(color = Color(0xFFF1F1F1))
+                        BookPageFlip(
+                            pageCount = pageCount,
+                            currentPage = currentPage,
+                            onPageChanged = { newPage ->
+                                currentPage = newPage
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        ) { index ->
+                            val bitmap = preloader.getBitmap(index)
                             Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFFFCFCFC))
-                                    .padding(vertical = 6.dp),
+                                    .fillMaxSize()
+                                    .background(Color.White),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "Page ${index + 1} of $pageCount",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = Color.Gray,
-                                        fontWeight = FontWeight.Medium
+                                if (bitmap != null) {
+                                    Image(
+                                        bitmap = bitmap.asImageBitmap(),
+                                        contentDescription = "Page ${index + 1}",
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize()
                                     )
-                                )
+                                } else {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        strokeWidth = 3.dp,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    BookNavigationHud(
+                        currentPage = currentPage,
+                        pageCount = pageCount,
+                        isLandscape = isLandscape,
+                        onPageSelected = { newPage ->
+                            currentPage = newPage
+                        }
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        items(pageCount) { index ->
+                            Card(
+                                shape = RoundedCornerShape(8.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .widthIn(max = 600.dp)
+                            ) {
+                                Column {
+                                    PdfPageItem(file = file, pageIndex = index)
+                                    HorizontalDivider(color = Color(0xFFF1F1F1))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(Color(0xFFFCFCFC))
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "Page ${index + 1} of $pageCount",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = Color.Gray,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -377,4 +466,182 @@ suspend fun PointerInputScope.detectPdfZoomGestures(
         } while (!canceled && event.changes.any { it.pressed })
     }
 }
+
+class PdfPagePreloader(
+    private val file: File,
+    private val context: Context,
+    private val scope: CoroutineScope
+) {
+    val cache = mutableStateMapOf<Int, Bitmap>()
+    private val loadingPages = mutableSetOf<Int>()
+    var pageCount by mutableStateOf(0)
+        private set
+
+    init {
+        try {
+            if (file.exists()) {
+                val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                val renderer = PdfRenderer(fd)
+                pageCount = renderer.pageCount
+                renderer.close()
+                fd.close()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun getBitmap(pageIndex: Int): Bitmap? {
+        if (pageIndex < 0 || pageIndex >= pageCount) return null
+        val cached = cache[pageIndex]
+        if (cached != null) return cached
+        
+        // Trigger load if not already loading
+        if (!loadingPages.contains(pageIndex)) {
+            loadPage(pageIndex)
+        }
+        return null
+    }
+
+    fun updateVisibleWindow(currentPage: Int, isLandscape: Boolean) {
+        val range = if (isLandscape) {
+            (currentPage - 3)..(currentPage + 4)
+        } else {
+            (currentPage - 2)..(currentPage + 2)
+        }
+
+        // Evict pages outside range
+        val keysToRemove = cache.keys.filter { it !in range }
+        keysToRemove.forEach { key ->
+            cache.remove(key)?.recycle()
+        }
+
+        // Preload pages in range
+        for (i in range) {
+            if (i in 0 until pageCount && !cache.containsKey(i) && !loadingPages.contains(i)) {
+                loadPage(i)
+            }
+        }
+    }
+
+    private fun loadPage(pageIndex: Int) {
+        loadingPages.add(pageIndex)
+        scope.launch(Dispatchers.IO) {
+            try {
+                val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                val renderer = PdfRenderer(fd)
+                if (pageIndex < renderer.pageCount) {
+                    val page = renderer.openPage(pageIndex)
+                    val upscaleFactor = 2
+                    val renderedBitmap = Bitmap.createBitmap(
+                        page.width * upscaleFactor,
+                        page.height * upscaleFactor,
+                        Bitmap.Config.ARGB_8888
+                    )
+                    page.render(renderedBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+                    renderer.close()
+                    fd.close()
+                    withContext(Dispatchers.Main) {
+                        cache[pageIndex] = renderedBitmap
+                        loadingPages.remove(pageIndex)
+                    }
+                } else {
+                    renderer.close()
+                    fd.close()
+                    withContext(Dispatchers.Main) {
+                        loadingPages.remove(pageIndex)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    loadingPages.remove(pageIndex)
+                }
+            }
+        }
+    }
+
+    fun clear() {
+        cache.values.forEach { it.recycle() }
+        cache.clear()
+        loadingPages.clear()
+    }
+}
+
+@Composable
+fun BookNavigationHud(
+    currentPage: Int,
+    pageCount: Int,
+    isLandscape: Boolean,
+    onPageSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val pageText = if (isLandscape) {
+                val leftPage = (currentPage / 2) * 2
+                val rightPage = leftPage + 1
+                if (rightPage < pageCount) {
+                    "Pages ${leftPage + 1}-${rightPage + 1} of $pageCount"
+                } else {
+                    "Page ${leftPage + 1} of $pageCount"
+                }
+            } else {
+                "Page ${currentPage + 1} of $pageCount"
+            }
+
+            Text(
+                text = pageText,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "1",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+                
+                Slider(
+                    value = currentPage.toFloat(),
+                    onValueChange = { value ->
+                        onPageSelected(value.toInt().coerceIn(0, pageCount - 1))
+                    },
+                    valueRange = 0f..(pageCount - 1).toFloat(),
+                    steps = if (pageCount > 2) pageCount - 2 else 0,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp)
+                )
+
+                Text(
+                    text = "$pageCount",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                )
+            }
+        }
+    }
+}
+
 

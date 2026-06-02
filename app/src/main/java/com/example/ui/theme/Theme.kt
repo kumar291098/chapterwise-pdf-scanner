@@ -13,39 +13,40 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = OliveGreen,
-    secondary = SoftSage,
-    tertiary = LightHerbalBg,
-    background = DarkCharcoal,
-    surface = Color(0xFF242320),
+    primary = PrimaryIndigoLight,
+    secondary = SecondaryVioletLight,
+    tertiary = AccentTealLight,
+    background = DeepCharcoal,
+    surface = Slate800,
     onPrimary = PureWhite,
-    onSecondary = CreamBackground,
-    onBackground = CreamBackground,
-    onSurface = CreamBackground
+    onSecondary = Slate100,
+    onBackground = Slate100,
+    onSurface = PureWhite,
+    surfaceVariant = Slate800,
+    onSurfaceVariant = Slate500,
+    outline = Slate600
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = OliveGreen,
-    secondary = SoftSage,
-    tertiary = LightHerbalBg,
-    background = CreamBackground,
+    primary = PrimaryIndigo,
+    secondary = SecondaryViolet,
+    tertiary = AccentTeal,
+    background = Slate50,
     surface = PureWhite,
     onPrimary = PureWhite,
-    onSecondary = DarkCharcoal,
-    onTertiary = DarkHerbalText,
-    onBackground = DarkCharcoal,
-    onSurface = DarkCharcoal,
-    surfaceVariant = WarmDesertSand,
-    onSurfaceVariant = SoftSage,
-    outline = DesertSand
+    onSecondary = DeepCharcoal,
+    onBackground = DeepCharcoal,
+    onSurface = DeepCharcoal,
+    surfaceVariant = Slate100,
+    onSurfaceVariant = Slate500,
+    outline = Slate100
   )
 
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  // Dynamic color can be disabled to preserve the branding perfectly! Let's default to false to showcase the premium designed brand.
-  dynamicColor: Boolean = false,
+  dynamicColor: Boolean = false, // Keep brand colors consistent
   content: @Composable () -> Unit,
 ) {
   val colorScheme =
